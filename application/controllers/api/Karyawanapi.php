@@ -21,7 +21,7 @@ class Karyawanapi extends REST_Controller
 
     function index_get()
     {
-        $this->response("Api for karyawan absensi", 200);
+        $this->response("Api for karyawan absensi", REST_Controller::HTTP_OK);
     }
 
     function login_post()
@@ -47,18 +47,18 @@ class Karyawanapi extends REST_Controller
             $this->Karyawanapi_model->edit_profile_token($reg_id, $decode_data->karyawan_phone);
             $get_karyawan = $this->Karyawanapi_model->get_data_karyawan($condition);
             $message = array(
-                'code' => '200',
+                'code' => REST_Controller::HTTP_OK,
                 'message' => 'found',
                 'data' => $get_karyawan->result()
             );
-            $this->response($message, 200);
+            $this->response($message, REST_Controller::HTTP_OK);
         } else {
             $message = array(
-                'code' => '404',
+                'code' => REST_Controller::HTTP_NOT_FOUND,
                 'message' => 'salah password atau nomor telepon',
                 'data' => []
             );
-            $this->response($message, 200);
+            $this->response($message, REST_Controller::HTTP_NOT_FOUND);
         }
     }
     
@@ -71,24 +71,27 @@ class Karyawanapi extends REST_Controller
         }
         $data = file_get_contents("php://input");
         $dec_data = json_decode($data);
-        $forgot = array(
+        $dataupdate = array(
             'password' => sha1($dec_data->password),
         );
-        $reset = $this->Karyawanapi_model->update($forgot);
+        $condition = array(
+            'karyawan_idcard' => $dec_data->karyawan_idcard
+        );
+        $reset = $this->Karyawanapi_model->update($forgot,$condition);
         if ($reset) {
             $message = array(
-                'code' => '200',
+                'code' => REST_Controller::HTTP_OK,
                 'message' => 'success',
                 'data' => 'data password berhasil disimpan!'
             );
-            $this->response($message, 200);
+            $this->response($message, REST_Controller::HTTP_OK);
         } else {
             $message = array(
-                'code' => '201',
+                'code' => REST_Controller::HTTP_NOT_FOUND,
                 'message' => 'failed',
                 'data' => ''
             );
-            $this->response($message, 201);
+            $this->response($message, REST_Controller::HTTP_NOT_FOUND);
         }
     }
     function register_karyawan_post()
@@ -108,34 +111,34 @@ class Karyawanapi extends REST_Controller
         $check_exist_email = $this->Karyawanapi_model->check_exist_email($email);
         if ($check_exist) {
             $message = array(
-                'code' => '201',
+                'code' => REST_Controller::HTTP_NOT_FOUND,
                 'message' => 'email and phone number already exist',
-                'data' => ''
+                'data' => []
             );
-            $this->response($message, 201);
+            $this->response($message, REST_Controller::HTTP_NOT_FOUND);
         } else
          if ($check_exist_phone) {
             $message = array(
-                'code' => '201',
+                'code' => REST_Controller::HTTP_NOT_FOUND,
                 'message' => 'phone already exist',
                 'data' => ''
             );
-            $this->response($message, 201);
+            $this->response($message, REST_Controller::HTTP_NOT_FOUND);
         } else if ($check_exist_email) {
             $message = array(
-                'code' => '201',
+                'code' => REST_Controller::HTTP_NOT_FOUND,
                 'message' => 'email already exist',
                 'data' => ''
             );
-            $this->response($message, 201);
+            $this->response($message, REST_Controller::HTTP_NOT_FOUND);
         } else {
             if ($dec_data->checked == "true") {
                 $message = array(
-                    'code' => '200',
+                    'code' => REST_Controller::HTTP_OK,
                     'message' => 'next',
                     'data' => ''
                 );
-                $this->response($message, 200);
+                $this->response($message, REST_Controller::HTTP_OK);
             } else {
                 $image = $dec_data->karyawan_photo;
                 $namafoto = time() . '-' . rand(0, 99999) . ".jpg";
@@ -165,24 +168,24 @@ class Karyawanapi extends REST_Controller
                 $signup = $this->Karyawanapi_model->signup($data_karyawan);
                 if ($signup) {
                     $message = array(
-                        'code' => '200',
+                        'code' => REST_Controller::HTTP_OK,
                         'message' => 'success',
                         'data' => 'data karyawan berhasil di tambah'
                     );
-                    $this->response($message, 200);
+                    $this->response($message, REST_Controller::HTTP_OK);
                 } else {
                     $message = array(
-                        'code' => '201',
+                        'code' => REST_Controller::HTTP_NOT_FOUND,
                         'message' => 'failed',
                         'data' => ''
                     );
-                    $this->response($message, 201);
+                    $this->response($message, REST_Controller::HTTP_NOT_FOUND);
                 }
             }
         }
     }
 
-    function karyawandata_post()
+    function karyawandatabynik_post()
     {
         if (!isset($_SERVER['PHP_AUTH_USER'])) {
             header("WWW-Authenticate: Basic realm=\"Private Area\"");
@@ -190,13 +193,80 @@ class Karyawanapi extends REST_Controller
             return false;
         }
         $data = file_get_contents("php://input");
-        $decoded_data = json_decode($data);
-        $karyawan = $this->Karyawanapi_model->kategori_merchant_active_data($decoded_data->idkaryawan);
+        $dec_data = json_decode($data);
+        $condition = array(
+            'karyawan_idcard' => $dec_data->karyawan_idcard,
+            'karyawan_id' => $dec_data->karyawan_id
+            );
+        $karyawan = $this->Karyawanapi_model->get_data_karyawan_nik($condition);
         $message = [
-            'code' => '200',
+            'code' => REST_Controller::HTTP_OK,
             'message' => 'success',
             'karyawan' => $karyawan,
         ];
-        $this->response($message, 200);
+        $this->response($message, REST_Controller::HTTP_OK);
     }
+
+    public function editkaryawan_post()
+    {
+        # code...
+        if (!isset($_SERVER['PHP_AUTH_USER'])) {
+            header("WWW-Authenticate: Basic realm=\"Private Area\"");
+            header("HTTP/1.0 401 Unauthorized");
+            return false;
+        }
+        $data = file_get_contents("php://input");
+        $dec_data = json_decode($data);
+
+        $condition = array(
+            'karyawan_idcard' => $dec_data->karyawan_idcard,
+            'karyawan_id' => $dec_data->karyawan_id);
+        $karyawan = $this->Karyawanapi_model->get_data_karyawan_nik($condition);
+        if($karyawan->num_rows() > 0)
+        {
+            unlink('images/karyawan/'. $karyawan->karyawan_photo);
+
+                $image = $dec_data->karyawan_photo;
+                $namafoto = time() . '-' . rand(0, 99999) . ".jpg";
+                $path = "images/karyawan/" . $namafoto;
+                file_put_contents($path, base64_decode($image));
+
+                
+                $dataupdate = array(
+                    'karyawan_name' => $dec_data->karyawan_name,
+                    'karyawan_phone' => $dec_data->karyawan_phone,
+                    'karyawan_email' => $dec_data->karyawan_email,
+                    'karyawan_photo' => $namafoto,
+                    'karyawan_status' => $dec_data->karyawan_status,
+                    'update_at' => date('Y-m-d H:i:s')
+                );
+                $updatedatabyimage = $this->karyawanapi_model->update($dataupdate,$condition);
+                if ($updatedatabyimage) {
+                    # code...
+                    $message = array(
+                        'code' => REST_Controller::HTTP_OK,
+                        'message' => 'success',
+                        'data' => 'data karyawan berhasil di tambah'
+                    );
+                    $this->response($message, REST_Controller::HTTP_OK);
+                }else{
+                    $message = array(
+                        'code' => REST_Controller::HTTP_NOT_FOUND,
+                        'message' => 'failed',
+                        'data' => ''
+                    );
+                    $this->response($message, REST_Controller::HTTP_NOT_FOUND); 
+                }
+        }else{
+            $message = array(
+                'code' => REST_Controller::HTTP_NOT_FOUND,
+                'message' => 'failed',
+                'data' => ''
+            );
+            $this->response($message, REST_Controller::HTTP_NOT_FOUND); 
+        }
+
+    }
+
+
 }
