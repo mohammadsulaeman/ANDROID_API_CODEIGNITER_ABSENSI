@@ -42,7 +42,6 @@ class Karyawanapi extends REST_Controller
             
         );
         $cek_login = $this->Karyawanapi_model->get_data_karyawan($condition);
-        $message = array();
         if ($cek_login->num_rows() > 0) {
             $this->Karyawanapi_model->edit_profile_token($reg_id, $decode_data->karyawan_phone);
             $get_karyawan = $this->Karyawanapi_model->get_data_karyawan($condition);
@@ -77,7 +76,7 @@ class Karyawanapi extends REST_Controller
         $condition = array(
             'karyawan_idcard' => $dec_data->karyawan_idcard
         );
-        $reset = $this->Karyawanapi_model->update($forgot,$condition);
+        $reset = $this->Karyawanapi_model->update($dataupdate,$condition);
         if ($reset) {
             $message = array(
                 'code' => REST_Controller::HTTP_OK,
